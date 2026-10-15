@@ -3,5 +3,7 @@ venv/
 
 output/
 
+draft.ipynb
+
 *.jpg
 *.png
