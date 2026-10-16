@@ -22,13 +22,16 @@ class NNInterpolator:
         self.y_mean = None
         self.y_std = None
 
+
     @staticmethod
     def _stack(dl):
         xs, ys = zip(*[(xb.float(), yb.float()) for xb, yb in dl])
         return torch.cat(xs), torch.cat(ys)
 
+
     def coeffs(self):
         return self.layers, self.consts
+
 
     def init_coeffs(self, inp_sz, out_sz):
         sizes = [inp_sz] + (self.nlay - 1) * [self.lay_sz] + [out_sz]
@@ -44,6 +47,7 @@ class NNInterpolator:
         for l in self.layers + self.consts:
             l.requires_grad_()
 
+
     def calc_preds(self, x):
         res = x
         n = len(self.layers)
@@ -53,14 +57,17 @@ class NNInterpolator:
                 res = F.relu(res)
         return res
 
+
     @staticmethod
     def calc_loss(preds, y):
         return ((preds - y)**2).mean(0)
+
 
     def update_coeffs(self):
         for w in self.layers + self.consts:
             w.sub_(w.grad * self.lr)
             w.grad.zero_()
+
 
     def epoch(self, dls):
         trn_dl, val_dl = dls
@@ -95,6 +102,7 @@ class NNInterpolator:
 
         return train_loss, val_loss
 
+
     def fit(self, dls):
         trn_dl, _ = dls
 
@@ -112,7 +120,13 @@ class NNInterpolator:
 
         return self.history
 
+
     def predict(self, x):
+        if self.layers is None or self.x_mean is None:
+            raise RuntimeError(
+                "NNInterpolator has not been trained yet. Call fit(data) first."
+                )
+        
         x = (x - self.x_mean) / self.x_std
         with torch.no_grad():
             preds = self.calc_preds(x)
