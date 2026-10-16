@@ -17,6 +17,16 @@ class NNInterpolator:
             'val_loss': []
         }
 
+        self.x_mean = None
+        self.x_std = None
+        self.y_mean = None
+        self.y_std = None
+
+    @staticmethod
+    def _stack(dl):
+        xs, ys = zip(*[(xb.float(), yb.float()) for xb, yb in dl])
+        return torch.cat(xs), torch.cat(ys)
+
     def coeffs(self):
         return self.layers, self.consts
 
@@ -45,7 +55,7 @@ class NNInterpolator:
 
     @staticmethod
     def calc_loss(preds, y):
-        return ((preds - y)**2).mean()
+        return ((preds - y)**2).mean(0)
 
     def update_coeffs(self):
         for w in self.layers + self.consts:
@@ -53,9 +63,13 @@ class NNInterpolator:
             w.grad.zero_()
 
     def epoch(self, dls):
+        trn_dl, val_dl = dls
 
         trn_total, trn_n = 0, 0
-        for xb, yb in dls[0]:
+        for xb, yb in trn_dl:
+            xb = (xb - self.x_mean) / self.x_std
+            yb = (yb - self.y_mean) / self.y_std
+
             preds = self.calc_preds(xb)
             loss = self.calc_loss(preds, yb)
             loss.backward()
@@ -68,7 +82,10 @@ class NNInterpolator:
 
         val_total, val_n = 0, 0
         with torch.no_grad():
-            for xb, yb in dls[1]:
+            for xb, yb in val_dl:
+                xb = (xb - self.x_mean) / self.x_std
+                yb = (yb - self.y_mean) / self.y_std
+
                 preds = self.calc_preds(xb)
                 loss = self.calc_loss(preds, yb)
 
@@ -79,7 +96,13 @@ class NNInterpolator:
         return train_loss, val_loss
 
     def fit(self, dls):
-        xb, yb = next(iter(dls[0]))
+        trn_dl, _ = dls
+
+        x_trn, y_trn = self._stack(trn_dl)
+        self.x_mean, self.x_std = x_trn.mean(0), x_trn.std(0).clamp_min(1e-12)
+        self.y_mean, self.y_std = y_trn.mean(0), y_trn.std(0).clamp_min(1e-12)
+
+        xb, yb = next(iter(trn_dl))
         self.init_coeffs(xb.shape[1], yb.shape[1])
 
         for i in range(self.nepochs):
@@ -90,5 +113,7 @@ class NNInterpolator:
         return self.history
 
     def predict(self, x):
+        x = (x - self.x_mean) / self.x_std
         with torch.no_grad():
-            return self.calc_preds(x)
+            preds = self.calc_preds(x)
+            return preds * self.y_std + self.y_mean
