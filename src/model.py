@@ -118,6 +118,13 @@ class NNInterpolator:
             self.history['train_loss'].append(train_loss)
             self.history['val_loss'].append(val_loss)
 
+        if (torch.isnan(torch.tensor(self.history['train_loss'])).any() or
+            torch.isnan(torch.tensor(self.history['val_loss'])).any() or
+            torch.isinf(torch.tensor(self.history['train_loss'])).any() or
+            torch.isinf(torch.tensor(self.history['val_loss'])).any()
+        ):
+            raise ValueError("The training process has diverged. Try a different lr.")
+
         return self.history
 
 
