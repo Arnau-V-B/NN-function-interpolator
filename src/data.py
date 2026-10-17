@@ -1,6 +1,6 @@
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import TensorDataset, random_split, Subset, DataLoader
 
 
 class Loader:
@@ -14,6 +14,9 @@ class Loader:
 
         self.dls = None
 
+        if not 0 < trn_perc < 1:
+            raise ValueError("trn_perc must be between 0 and 1")
+
 
     @staticmethod
     def idx_as_list(x):
@@ -26,11 +29,17 @@ class Loader:
 
 
     def splitter(self, x, y):
-        ds = list(zip(x, y))
+        ds = TensorDataset(x, y)
+
+        trn_sz = int(self.trn_perc * len(ds))
+        val_sz = len(ds) - trn_sz
+        if trn_sz < 1 or val_sz < 1:
+            raise ValueError("there must be at leat one observation in both"
+                            "training and validation sets after splitting")
+
         if self.shuffle:
             trn_ds, val_ds = random_split(ds, [self.trn_perc, 1 - self.trn_perc])
         else:
-            trn_sz = int(self.trn_perc * len(ds))
             trn_ds = Subset(ds, range(trn_sz))
             val_ds = Subset(ds, range(trn_sz, len(ds)))
         return trn_ds, val_ds
