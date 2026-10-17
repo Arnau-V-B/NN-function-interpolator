@@ -6,11 +6,11 @@ from torch.utils.data import TensorDataset, random_split, Subset, DataLoader
 class Loader:
 
 
-    def __init__(self, trn_perc, batch_sz, shuffle=True, val_batching=False):
+    def __init__(self, trn_perc=0.8, batch_sz=None, shuffle=True, val_batching=False):
         self.trn_perc = trn_perc
         self.batch_sz = batch_sz
         self.shuffle = shuffle
-        self.val_batch = val_batching
+        self.val_batching = val_batching
 
         self.dls = None
 
@@ -47,6 +47,9 @@ class Loader:
 
     def build_dls(self, x, y):
         trn_ds, val_ds = self.splitter(x, y)
+
+        if self.batch_sz == None:
+            self.batch_sz = len(trn_ds)
 
         trn_dl = DataLoader(trn_ds, batch_size=self.batch_sz, shuffle=self.shuffle)
         if self.val_batching:
