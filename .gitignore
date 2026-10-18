@@ -2,6 +2,7 @@ env/
 venv/
 
 output/
+*.egg-info/
 
 draft.ipynb
 
