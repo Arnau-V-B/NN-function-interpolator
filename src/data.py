@@ -34,7 +34,7 @@ class Loader:
         trn_sz = int(self.trn_perc * len(ds))
         val_sz = len(ds) - trn_sz
         if trn_sz < 1 or val_sz < 1:
-            raise ValueError("there must be at leat one observation in both"
+            raise ValueError("there must be at least one observation in both" \
                             "training and validation sets after splitting")
 
         if self.shuffle:
@@ -71,3 +71,19 @@ class Loader:
         self.dls = self.build_dls(x, y)
 
         return self.dls
+
+
+
+def stack(dl):
+    xs, ys = dl.dataset.dataset.tensors
+    dl_idx = dl.dataset.indices
+    x_dl, y_dl = xs[dl_idx], ys[dl_idx]
+    return x_dl, y_dl
+
+
+def standardize(x, x_mean, x_std):
+    return (x - x_mean) / x_std
+
+
+def destandardize(x, x_mean, x_std):
+    return x * x_std + x_mean

@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from data import stack, standardize, destandardize
 from plotting import *
 
 
@@ -22,12 +23,6 @@ class NNInterpolator:
         self.x_std = None
         self.y_mean = None
         self.y_std = None
-
-
-    @staticmethod
-    def _stack(dl):
-        xs, ys = zip(*[(xb.float(), yb.float()) for xb, yb in dl])
-        return torch.cat(xs), torch.cat(ys)
 
 
     def coeffs(self):
@@ -69,10 +64,11 @@ class NNInterpolator:
         if x.ndim == 1:
             x = x.reshape(-1, 1)
         
-        x = (x - self.x_mean) / self.x_std
+        x = standardize(x, self.x_mean, self.x_std)
         with torch.no_grad():
             preds = self.calc_preds(x)
-        return preds * self.y_std + self.y_mean
+        preds = destandardize(preds, self.y_mean, self.y_std)
+        return preds
 
 
     @staticmethod
@@ -91,8 +87,8 @@ class NNInterpolator:
 
         trn_total, trn_n = 0, 0
         for xb, yb in trn_dl:
-            xb = (xb - self.x_mean) / self.x_std
-            yb = (yb - self.y_mean) / self.y_std
+            xb = standardize(xb, self.x_mean, self.x_std)
+            yb = standardize(yb, self.y_mean, self.y_std)
 
             preds = self.calc_preds(xb)
             loss = self.calc_loss(preds, yb)
@@ -107,8 +103,8 @@ class NNInterpolator:
         val_total, val_n = 0, 0
         with torch.no_grad():
             for xb, yb in val_dl:
-                xb = (xb - self.x_mean) / self.x_std
-                yb = (yb - self.y_mean) / self.y_std
+                xb = standardize(xb, self.x_mean, self.x_std)
+                yb = standardize(yb, self.y_mean, self.y_std)
 
                 preds = self.calc_preds(xb)
                 loss = self.calc_loss(preds, yb)
@@ -123,13 +119,12 @@ class NNInterpolator:
     def fit(self, dls, plot=False):
         trn_dl, val_dl = dls
 
-        x_trn, y_trn = self._stack(trn_dl)
+        x_trn, y_trn = stack(trn_dl)
         self.x_mean, self.x_std = x_trn.mean(0), x_trn.std(0).clamp_min(1e-12)
         self.y_mean, self.y_std = y_trn.mean(0), y_trn.std(0).clamp_min(1e-12)
 
-        xb, yb = next(iter(trn_dl))
-        inp_sz = xb.shape[1]
-        out_sz = yb.shape[1]
+        inp_sz = x_trn.shape[1]
+        out_sz = y_trn.shape[1]
         self.init_coeffs(inp_sz, out_sz)
 
         for i in range(self.nepochs):
@@ -148,8 +143,7 @@ class NNInterpolator:
             plot_history(self.history)
 
             x, y = trn_dl.dataset.dataset.tensors
-            val_idx = val_dl.dataset.indices
-            x_val = torch.sort(x[val_idx], dim=0)
+            x_val, _ = torch.sort(stack(val_dl)[0], dim=0)
             preds_val = self.predict(x_val)
 
             if inp_sz == out_sz == 1:
