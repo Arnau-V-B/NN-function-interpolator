@@ -3,6 +3,7 @@ venv/
 
 output/
 *.egg-info/
+__pycache__/
 
 draft.ipynb
 
