@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
-from data import stack, standardize, destandardize
-from plotting import *
+from .data import stack, standardize, destandardize
+from .plotting import *
 
 
 class NNInterpolator:

@@ -5,7 +5,6 @@ from torch.utils.data import TensorDataset, random_split, Subset, DataLoader
 
 class Loader:
 
-
     def __init__(self, trn_perc=0.8, batch_sz=None, shuffle=True, val_batching=False):
         self.trn_perc = trn_perc
         self.batch_sz = batch_sz
