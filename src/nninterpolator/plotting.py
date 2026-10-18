@@ -10,6 +10,7 @@ def plot_history(data):
     ax.plot(trn_loss, c='blue', label='train loss')
     ax.plot(val_loss, c='red', label='validation loss')
     ax.legend()
+    ax.set_yscale('log')
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss (MSE)')
     plt.tight_layout()

@@ -64,8 +64,8 @@ class Loader:
         x_cols = self.idx_as_list(x_cols)
         y_cols = self.idx_as_list(y_cols)
 
-        x = torch.tensor(data.iloc[:, x_cols].values)
-        y = torch.tensor(data.iloc[:, y_cols].values)
+        x = torch.tensor(data.iloc[:, x_cols].values, dtype=torch.float32)
+        y = torch.tensor(data.iloc[:, y_cols].values, dtype=torch.float32)
 
         self.dls = self.build_dls(x, y)
 
