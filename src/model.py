@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from plotting import *
 
 
 class NNInterpolator:
@@ -58,6 +59,22 @@ class NNInterpolator:
         return res
 
 
+    def predict(self, x):
+        if self.layers is None or self.x_mean is None:
+            raise RuntimeError(
+                "NNInterpolator has not been trained yet. Call fit(data) first."
+                )
+
+        x = torch.as_tensor(x, dtype=torch.float32)
+        if x.ndim == 1:
+            x = x.reshape(-1, 1)
+        
+        x = (x - self.x_mean) / self.x_std
+        with torch.no_grad():
+            preds = self.calc_preds(x)
+        return preds * self.y_std + self.y_mean
+
+
     @staticmethod
     def calc_loss(preds, y):
         return ((preds - y)**2).mean(0)
@@ -103,15 +120,17 @@ class NNInterpolator:
         return train_loss, val_loss
 
 
-    def fit(self, dls):
-        trn_dl, _ = dls
+    def fit(self, dls, plot=False):
+        trn_dl, val_dl = dls
 
         x_trn, y_trn = self._stack(trn_dl)
         self.x_mean, self.x_std = x_trn.mean(0), x_trn.std(0).clamp_min(1e-12)
         self.y_mean, self.y_std = y_trn.mean(0), y_trn.std(0).clamp_min(1e-12)
 
         xb, yb = next(iter(trn_dl))
-        self.init_coeffs(xb.shape[1], yb.shape[1])
+        inp_sz = xb.shape[1]
+        out_sz = yb.shape[1]
+        self.init_coeffs(inp_sz, out_sz)
 
         for i in range(self.nepochs):
             train_loss, val_loss = self.epoch(dls)
@@ -125,16 +144,20 @@ class NNInterpolator:
         ):
             raise ValueError("The training process has diverged. Try a different lr.")
 
+        if plot:
+            plot_history(self.history)
+
+            x, y = trn_dl.dataset.dataset.tensors
+            val_idx = val_dl.dataset.indices
+            x_val = torch.sort(x[val_idx], dim=0)
+            preds_val = self.predict(x_val)
+
+            if inp_sz == out_sz == 1:
+                plot_fit_1d(x, y, x_val, preds_val)
+            elif inp_sz == 2 and out_sz == 1:
+                plot_fit_2d(x, y, x_val, preds_val)
+            else:
+                raise RuntimeError("Figures can not be plotted if the function has" \
+                                    "more than 2 dimensions.")
+
         return self.history
-
-
-    def predict(self, x):
-        if self.layers is None or self.x_mean is None:
-            raise RuntimeError(
-                "NNInterpolator has not been trained yet. Call fit(data) first."
-                )
-        
-        x = (x - self.x_mean) / self.x_std
-        with torch.no_grad():
-            preds = self.calc_preds(x)
-            return preds * self.y_std + self.y_mean
