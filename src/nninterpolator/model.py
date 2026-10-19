@@ -143,12 +143,14 @@ class NNInterpolator:
             plot_history(self.history)
 
             x, y = trn_dl.dataset.dataset.tensors
-            x_val, _ = torch.sort(stack(val_dl)[0], dim=0)
-            preds_val = self.predict(x_val)
+            x_val = stack(val_dl)[0]
 
             if inp_sz == out_sz == 1:
-                plot_fit_1d(x, y, x_val, preds_val)
+                x_val_sort, _ = torch.sort(x_val, dim=0)
+                preds_val = self.predict(x_val_sort)
+                plot_fit_1d(x, y, x_val_sort, preds_val)
             elif inp_sz == 2 and out_sz == 1:
+                preds_val = self.predict(x_val)
                 plot_fit_2d(x, y, x_val, preds_val)
             else:
                 raise RuntimeError("Figures can not be plotted if the function has" \
