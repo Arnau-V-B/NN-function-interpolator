@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import torch.nn.utils as U
 from .data import stack, standardize, destandardize
 from .plotting import *
 
@@ -33,13 +34,10 @@ class NNInterpolator:
         sizes = [inp_sz] + (self.nlay - 1) * [self.lay_sz] + [out_sz]
         n = len(sizes)
         self.layers = [
-            torch.randn((sizes[i], sizes[i+1])) * (2 / sizes[i]) ** 0.5
+            torch.randn((sizes[i], sizes[i+1])) * (2.0 / sizes[i]) ** 0.5
             for i in range(n-1)
         ]
-        self.consts = [
-            (torch.rand(sizes[i+1]) * 2 - 1) * (1 / sizes[i]) ** 0.5
-            for i in range(n-1)
-        ]
+        self.consts = [torch.zeros(sizes[i+1]) for i in range(n-1)]
         for l in self.layers + self.consts:
             l.requires_grad_()
 
@@ -77,7 +75,9 @@ class NNInterpolator:
 
 
     def update_coeffs(self):
-        for w in self.layers + self.consts:
+        params = self.layers + self.consts
+        U.clip_grad_norm_(params, max_norm=1.0)
+        for w in params:
             w.sub_(w.grad * self.lr)
             w.grad.zero_()
 
