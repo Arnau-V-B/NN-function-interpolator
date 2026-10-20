@@ -7,11 +7,9 @@ from .plotting import *
 
 class NNInterpolator:
 
-    def __init__(self, nlay, lay_sz, lr, nepochs):
+    def __init__(self, nlay, lay_sz):
         self.nlay = nlay
         self.lay_sz = lay_sz
-        self.lr = lr
-        self.nepochs = nepochs
 
         self.layers = None
         self.consts = None
@@ -74,15 +72,15 @@ class NNInterpolator:
         return ((preds - y)**2).mean(0)
 
 
-    def update_coeffs(self):
+    def update_coeffs(self, lr):
         params = self.layers + self.consts
         U.clip_grad_norm_(params, max_norm=1.0)
         for w in params:
-            w.sub_(w.grad * self.lr)
+            w.sub_(w.grad * lr)
             w.grad.zero_()
 
 
-    def epoch(self, dls):
+    def epoch(self, dls, lr):
         trn_dl, val_dl = dls
 
         trn_total, trn_n = 0, 0
@@ -94,7 +92,7 @@ class NNInterpolator:
             loss = self.calc_loss(preds, yb)
             loss.backward()
             with torch.no_grad():
-                self.update_coeffs()
+                self.update_coeffs(lr)
 
             trn_total += loss.item() * len(xb)
             trn_n += len(xb)
@@ -116,7 +114,7 @@ class NNInterpolator:
         return train_loss, val_loss
 
 
-    def fit(self, dls, plot=False):
+    def fit(self, dls, lr=1e-3, nepochs=10, plot=False):
         trn_dl, val_dl = dls
 
         x_trn, y_trn = stack(trn_dl)
@@ -129,8 +127,8 @@ class NNInterpolator:
 
         self.history = {k: [] for k in self.history}
 
-        for i in range(self.nepochs):
-            train_loss, val_loss = self.epoch(dls)
+        for i in range(nepochs):
+            train_loss, val_loss = self.epoch(dls, lr)
             self.history['train_loss'].append(train_loss)
             self.history['val_loss'].append(val_loss)
 
