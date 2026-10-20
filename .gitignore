@@ -6,6 +6,7 @@ output/
 __pycache__/
 
 draft.ipynb
+todo_list.txt
 
 *.jpg
 *.png
