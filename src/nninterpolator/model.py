@@ -127,6 +127,8 @@ class NNInterpolator:
         out_sz = y_trn.shape[1]
         self.init_coeffs(inp_sz, out_sz)
 
+        self.history = {k: [] for k in self.history}
+
         for i in range(self.nepochs):
             train_loss, val_loss = self.epoch(dls)
             self.history['train_loss'].append(train_loss)
