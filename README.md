@@ -45,6 +45,7 @@ nn-interpolator/
 │   └── example2.csv
 ├── notebooks/
 │   └── getting_started.ipynb
+│   └── model_tuning_deep-dive.ipynb
 ├── src/
 │   └── nninterpolator/
 │       ├── __init__.py
@@ -65,9 +66,9 @@ nn-interpolator/
 
 ## Quick Start
 
-The following example demonstrates how to load a dataset, train a neural network and make predictions. For a more in-depth analysis, see [getting_started.ipynb](./notebooks/getting_started.ipynb).
+The following example demonstrates how to load a dataset, train a neural network and make predictions. For a more in-depth workflow see [getting_started.ipynb](./notebooks/getting_started.ipynb), and for a detailed explanation of each parameter see [model_tuning_deep-dive.ipynb](./notebooks/model_tuning_deep-dive.ipynb).
 
-Suppose `examples/example1a.csv` contains two columns: the input variable \(x\) and the corresponding target \(y\).
+The dataset inside [example1a.csv](./examples/example1a.csv) contains two columns: the input variable \(x\) and the corresponding target \(y\).
 
 ```python
 import torch
